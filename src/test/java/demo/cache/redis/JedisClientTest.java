@@ -6,6 +6,8 @@ import java.util.concurrent.Executors;
 
 import org.junit.Test;
 
+import demo.cache.model.Admin;
+import demo.cache.util.JsonUtils;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
@@ -145,27 +147,23 @@ public class JedisClientTest {
 					e.printStackTrace();
 				}
 			}
-			
 		}
-		
 	}
 	
 	@Test
 	public void testGetKeys()
 	{
 		String[] keys = jedis.getCacheKeys("*");
-		//jedis.deleteKeys(keys);
 		for (String key : keys)
 		{
 			System.out.println(key +":"+ jedis.get(key, String.class));
 		}
-		
 	}
 	
 	@Test
 	public void testJedisPipe()
 	{
-		String[] keys = jedis.getCacheKeys("SFZDY_USER_*");
+		String[] keys = jedis.getCacheKeys("user*");
 		long beginTime = System.currentTimeMillis();
 		for (String key : keys)
 		{
@@ -174,8 +172,6 @@ public class JedisClientTest {
 		System.out.println(keys.length);
 		jedis.deleteKeys(keys);
 		System.out.println("Batch Cost time:" + (System.currentTimeMillis() - beginTime));
-		
-		
 	}
 	
 	@Test
@@ -184,16 +180,34 @@ public class JedisClientTest {
 		HashMap<String, Object> dataMap = new HashMap<String,Object>(); 
 		for (int i = 0 ; i < 10000; i++)
 		{
-			dataMap.put(String.valueOf(i), "fjdsaljewrjklfdsafdsafdsa" + i);
+			dataMap.put("test_"+String.valueOf(i), "test" + i);
 		}
+		long begin = System.currentTimeMillis();
 		jedis.batchPut(dataMap);
+		long end1 = System.currentTimeMillis();
+		String[] keys = jedis.getCacheKeys("test_*");
+		jedis.deleteKeys(keys);
+		long end2 = System.currentTimeMillis();
+		System.out.println("add 10000 keys, cost:"+(end1-begin)+"\n"
+				+ "delete 10000 keys, cost:"+(end2-end1));
 	}
 	
 	@Test
-	public void testBytes()
+	public void testAddObject()
 	{
-		String userInfo = "{\"id\":581,\"phoneNumber\":\"13751113766\",\"email\":null,\"userToken\":\"B7DC8EBCD6E52D0967E2862DF769562E\",\"password\":\"123456\",\"headImageUrl\":null,\"registTime\":\"2014/11/04 02:28:27\",\"productCode\":\"GAME_BOOSTER\",\"vipExpireTime\":null,\"vipLevel\":null,\"score\":0,\"isVip\":false,\"isSignIn\":false}";
-		System.out.println(userInfo.getBytes().length);
+		
+		//System.out.println(System.currentTimeMillis());
+		Admin admin = new Admin();
+		admin.setBlogUrl("http://blog.163.com/marlonwang/");
+		admin.setImageUrl("http://blog.163.com/marlonwang/icon/xxx.png");
+		admin.setMail("marlonwang@163.com");
+		admin.setName("marlonwang");
+		admin.setPasswd("123456");
+		admin.setPrivilege(1);
+		jedis.put("admin_1", admin);
+		jedis.put("admin_2", JsonUtils.obj2json(admin));
+		
+		System.out.println(jedis.get("admin_1", Admin.class));//demo.cache.model.Admin@51a8344f
+		System.out.println(jedis.get("admin_2", String.class));
 	}
-
 }
