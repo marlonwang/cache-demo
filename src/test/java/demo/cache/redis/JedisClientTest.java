@@ -5,6 +5,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import org.junit.Test;
+import org.springframework.util.StringUtils;
 
 import demo.cache.model.Admin;
 import demo.cache.util.JsonUtils;
@@ -19,8 +20,7 @@ public class JedisClientTest {
 	@Test
 	public void test()
 	{
-		jedis.put("user1", "user1_user");
-
+		jedis.put("user1", "user1_info");
 	}
 
 	@Test
@@ -33,14 +33,11 @@ public class JedisClientTest {
 
 		System.out.println(jedis.getAtomCount("testkey"));
 
-		jedis.put("testkey", 0);
-
-		/*
-		 * for(int i = 0 ; i < 40;i++)
-		 * {
-		 * jedis.atomDecrease("testkey");
-		 * }
-		 */
+		for(int i = 0 ; i < 5;i++)
+		{
+		  jedis.atomDecrease("testkey");
+		}
+		 
 		System.out.println(jedis.getAtomCount("testkey"));
 	}
 
@@ -69,6 +66,7 @@ public class JedisClientTest {
 		// testOnReturn: 向连接池归还链接时，是否检测链接对象的有效性。默认为false。
 		config.setTestOnReturn(true);
 
+		@SuppressWarnings("resource")
 		JedisPool jedisPool = new JedisPool(config, "127.0.0.1", 16379);
 		ExecutorService exec = Executors.newFixedThreadPool(1000);
 		for (int i = 0; i < 1000; i++)
@@ -90,33 +88,10 @@ public class JedisClientTest {
 			Thread t = new Thread(new TestThread(jedis));
 			exec.execute(t);
 		}
-//		Thread t0 = new Thread(new TestThread(jedis));
-//		Thread t1 = new Thread(new TestThread(jedis));
-//		Thread t2 = new Thread(new TestThread(jedis));
-//		Thread t3 = new Thread(new TestThread(jedis));
-//		Thread t4 = new Thread(new TestThread(jedis));
-//		Thread t5 = new Thread(new TestThread(jedis));
-//		Thread t6 = new Thread(new TestThread(jedis));
-//		Thread t7 = new Thread(new TestThread(jedis));
-//		
-//		t0.start();
-//		t1.start();
-//		t2.start();
-//		t3.start();
-		
-//		ExecutorService exec = Executors.newFixedThreadPool(5);
-//		exec.execute(t0);
-//		exec.execute(t1);
-//		exec.execute(t2);
-//		exec.execute(t3);
-//		exec.execute(t4);
-//		exec.execute(t5);
-//		exec.execute(t6);
-//		exec.execute(t7);
 		System.out.println("线程初始化完毕!");
 		while(true)
 		{
-			Thread.sleep(1000000);
+			Thread.sleep(10000);
 		}
 	}
 	
@@ -136,7 +111,6 @@ public class JedisClientTest {
 				long currentTime = System.currentTimeMillis();
 				jedisClient.incr("TEST_INCR");
 				System.out.println("cost time:" + (System.currentTimeMillis() - currentTime));
-//				System.out.println("Thread");
 				try
 				{
 					Thread.sleep(500);
@@ -209,5 +183,39 @@ public class JedisClientTest {
 		
 		System.out.println(jedis.get("admin_1", Admin.class));//demo.cache.model.Admin@51a8344f
 		System.out.println(jedis.get("admin_2", String.class));
+	}
+	
+	@Test
+	public void testGetRedis()
+	{
+		System.out.println(jedis.getRedisServerIp() +" "+jedis.getRedisServerPort());
+		System.out.println(jedis.getJedis());
+		System.out.println(JsonUtils.obj2json(jedis.getJedis())); //null
+	}
+	
+	@Test
+	public void testGetActive(){
+		System.out.println(jedis.getJedisPool());
+		System.out.println(jedis.getActive());
+	}
+	
+	@Test
+	public void putKeyWithExpire()
+	{
+		jedis.put("expireKey",System.currentTimeMillis(), 50);
+		int count = 0;
+		while(!StringUtils.isEmpty(jedis.get("expireKey", String.class)))
+		{
+			System.out.println(jedis.get("expireKey", String.class));
+			try {
+				Thread.sleep(1000);
+				count++;
+				
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		System.out.println(count+" at "+System.currentTimeMillis());
 	}
 }
